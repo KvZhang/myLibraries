@@ -1,0 +1,104 @@
+/*
+ * LaputaTimer.cpp
+ *
+ *  Created on: 2015Äê11ÔÂ3ÈÕ
+ *      Author: zhangyu
+ *      Need put processTimer() in loop(){}
+ */
+
+#include "LaputaTimer.h"
+#include "Arduino.h"
+LaputaTimer::LaputaTimer() {
+	// TODO Auto-generated constructor stub
+	for (unsigned char i = 0; i < MAX_SYS_TIMER; i++) {
+		this->SysTimer[i].Active = 0;
+		this->SysTimer[i].type = 0;
+		this->SysTimer[i].pTimerFunc = 0;
+		this->SysTimer[i].Elapse = 0;
+		this->SysTimer[i].StartTime = 0;
+	}
+}
+
+LaputaTimer::~LaputaTimer() {
+	// TODO Auto-generated destructor stub
+}
+void LaputaTimer::processTimer() {
+	for (unsigned char i = 0; i < MAX_SYS_TIMER; i++) {
+		if (this->SysTimer[i].Active) {
+			if ((millis() - this->SysTimer[i].StartTime)
+					>= this->SysTimer[i].Elapse) {
+				if (this->SysTimer[i].pTimerFunc) {
+					this->SysTimer[i].pTimerFunc();
+				}
+				if (this->SysTimer[i].type == 1) {
+					this->SysTimer[i].StartTime = millis();
+				} else {
+					this->SysTimer[i].Active = 0;
+				}
+
+			}
+		}
+	}
+}
+BYTE LaputaTimer::SetTimer(WORD Elapse, _Pfn pTimerFunc) {
+	BYTE i;
+
+	if (Elapse == 0) {
+		if (pTimerFunc != 0) {
+			pTimerFunc();
+		}
+	} else {
+		for (i = 0; i < MAX_SYS_TIMER; i++) {
+			if (this->SysTimer[i].Active == 0) {
+				this->SysTimer[i].Active = 1;
+				this->SysTimer[i].type = 0;
+				this->SysTimer[i].pTimerFunc = pTimerFunc;
+				this->SysTimer[i].Elapse = Elapse;
+				this->SysTimer[i].StartTime = millis();
+				return i + 1;
+			}
+		}
+	}
+	return 0;
+}
+BYTE LaputaTimer::SetTimer(WORD Elapse, _Pfn pTimerFunc, BYTE repeatType) {
+	BYTE i;
+
+	if (Elapse == 0) {
+		if (pTimerFunc != 0) {
+			pTimerFunc();
+		}
+	} else {
+		for (i = 0; i < MAX_SYS_TIMER; i++) {
+			if (this->SysTimer[i].Active == 0) {
+				this->SysTimer[i].Active = 1;
+				this->SysTimer[i].type = repeatType;
+				this->SysTimer[i].pTimerFunc = pTimerFunc;
+				this->SysTimer[i].Elapse = Elapse;
+				this->SysTimer[i].StartTime = millis();
+				return i + 1;
+			}
+		}
+	}
+	return 0;
+}
+//-------------------------------- RestartTimer --------------------------------------
+void LaputaTimer::RestartTimer(BYTE *pTimerID) {
+	if (*pTimerID <= 0 || *pTimerID > MAX_SYS_TIMER)
+		return;
+
+	if (this->SysTimer[*pTimerID - 1].Active == 0)
+		return;
+
+	this->SysTimer[*pTimerID - 1].StartTime = millis();
+}
+
+//-------------------------------- KillTimer --------------------------------------
+void LaputaTimer::KillTimer(BYTE *pTimerID) {
+	if (*pTimerID <= 0 || *pTimerID > MAX_SYS_TIMER)
+		return;
+
+	this->SysTimer[*pTimerID - 1].Active = 0;
+
+	*pTimerID = 0;
+}
